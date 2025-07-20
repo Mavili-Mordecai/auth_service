@@ -1,0 +1,30 @@
+package com.locus_narrative.auth_service.application.dto.requests;
+
+import com.locus_narrative.auth_service.application.dto.IResponse;
+import com.locus_narrative.auth_service.application.dto.Request;
+import com.locus_narrative.auth_service.application.dto.Responses;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import java.util.Optional;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserRequest extends Request {
+    private String login;
+    private String password;
+
+    @Override
+    public Optional<IResponse<String>> validate() {
+        if (login == null || login.isBlank())
+            return Optional.of(Responses.badRequest("The field `login` cannot be blank."));
+
+        if (password == null || password.isBlank())
+            return Optional.of(Responses.badRequest("The field `password` cannot be blank."));
+
+        return super.validate();
+    }
+}
