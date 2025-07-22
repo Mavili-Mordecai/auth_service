@@ -5,18 +5,26 @@ import com.locus_narrative.auth_service.application.dto.Responses;
 import com.locus_narrative.auth_service.application.dto.requests.RefreshRequest;
 import com.locus_narrative.auth_service.application.dto.requests.UserRequest;
 import com.locus_narrative.auth_service.application.dto.responses.TokenResponse;
+import com.locus_narrative.auth_service.application.usecases.DeleteUserUseCase;
+import com.locus_narrative.auth_service.application.usecases.GetUserByUuidUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignInUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignUpUseCase;
 import com.locus_narrative.auth_service.domain.Either;
 import com.locus_narrative.auth_service.domain.entities.EUserSignUpError;
 import com.locus_narrative.auth_service.domain.entities.UserEntity;
 import com.locus_narrative.auth_service.domain.services.IJwtTokenService;
+import com.locus_narrative.auth_service.presentation.schemes.JwtTokensResponseScheme;
 import io.jsonwebtoken.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,25 +34,87 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Tag(name = "Аутентификация", description = "Методы входа и регистрации")
+@Tag(name = "Authentication", description = "Methods for user authentication.")
 public class AuthController {
     private final IJwtTokenService _jwtTokenService;
     private final SignInUseCase signInUseCase;
     private final SignUpUseCase signUpUseCase;
+    private final GetUserByUuidUseCase getUserByUuidUseCase;
+    private final DeleteUserUseCase deleteUserUseCase;
 
     @Value("${password.requirements.min-length}")
     private String passwordMinLength;
 
+    @Operation(
+            summary = "Login to your account.",
+            description = "Accepting login and password, it performs authentication and returns JWT tokens.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The credentials are correct.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = JwtTokensResponseScheme.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request body.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "The credentials are incorrect.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    )
+            }
+    )
     @PostMapping("/sign-in")
     private ResponseEntity<IResponse<?>> signIn(@RequestBody @Validated(UserRequest.class) UserRequest request) {
         UserEntity user = signInUseCase.invoke(request.getLogin(), request.getPassword());
 
         if (user.getId() == null)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Responses.unauthorized("Invalid credentials."));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Responses.unauthorized("The credentials are incorrect."));
 
         return generateTokens(user.getUuid());
     }
 
+    @Operation(
+            summary = "Register an account.",
+            description = "Accepting login and password, creates an account and returns JWT tokens.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Account created successfully.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = JwtTokensResponseScheme.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request body or weak password.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "A user with this login already exists.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    )
+            }
+    )
     @PostMapping("/sign-up")
     private ResponseEntity<IResponse<?>> signUp(@RequestBody @Validated(UserRequest.class) UserRequest request) {
         Either<EUserSignUpError, UserEntity> userOrError = signUpUseCase.invoke(request.getLogin(), request.getPassword());
@@ -63,6 +133,36 @@ public class AuthController {
         return generateTokens(userOrError.getRight().getUuid());
     }
 
+    @Operation(
+            summary = "JWT token update.",
+            description = "Accepting a refresh token returns new JWT tokens.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "A new pair of JWT tokens.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = JwtTokensResponseScheme.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request body.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Invalid refresh token.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    )
+            }
+    )
     @PostMapping("/refresh")
     private ResponseEntity<IResponse<?>> refresh(@RequestBody @Validated(RefreshRequest.class) RefreshRequest request) {
         String message = "Internal error";
@@ -83,6 +183,64 @@ public class AuthController {
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Responses.unauthorized(message));
+    }
+
+    @Operation(
+            summary = "Deletes a user.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The user has been deleted.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request body.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Invalid JWT-token.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "User not found.",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = IResponse.class)
+                            )
+                    )
+            }
+    )
+    @DeleteMapping("/delete")
+    private ResponseEntity<IResponse<?>> delete() {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID uuid;
+
+        try {
+            uuid = UUID.fromString(principal);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Responses.badRequest("The 'sub' field in the JWT token must contain a valid UUID."));
+        }
+
+        UserEntity entity = getUserByUuidUseCase.invoke(uuid);
+
+        if (entity.getId() == null)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Responses.notFound("User not found."));
+
+        deleteUserUseCase.invoke(uuid);
+
+        return ResponseEntity.ok(Responses.ok());
     }
 
     private ResponseEntity<IResponse<?>> generateTokens(UUID uuid) {
