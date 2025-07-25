@@ -1,13 +1,12 @@
 package com.locus_narrative.auth_service.infrastructure.services;
 
-import com.locus_narrative.auth_service.domain.services.IPasswordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class PasswordService implements IPasswordService {
+public class PasswordService implements com.locus_narrative.auth_service.domain.services.PasswordService {
     private final PasswordEncoder passwordEncoder;
 
     @Override

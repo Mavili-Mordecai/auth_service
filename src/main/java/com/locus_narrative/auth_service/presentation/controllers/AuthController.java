@@ -14,7 +14,7 @@ import com.locus_narrative.auth_service.domain.exceptions.LoginIsBusyException;
 import com.locus_narrative.auth_service.domain.exceptions.UnauthorizedException;
 import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
 import com.locus_narrative.auth_service.domain.exceptions.WeakPasswordException;
-import com.locus_narrative.auth_service.domain.services.IJwtTokenService;
+import com.locus_narrative.auth_service.domain.services.JwtTokenService;
 import com.locus_narrative.auth_service.presentation.schemes.JwtTokensResponseScheme;
 import io.jsonwebtoken.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,7 +38,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Methods for user authentication.")
 public class AuthController {
-    private final IJwtTokenService _jwtTokenService;
+    private final JwtTokenService _jwtTokenService;
     private final SignInUseCase signInUseCase;
     private final SignUpUseCase signUpUseCase;
     private final DeleteUserUseCase deleteUserUseCase;

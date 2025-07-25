@@ -1,6 +1,5 @@
 package com.locus_narrative.auth_service.infrastructure.services;
 
-import com.locus_narrative.auth_service.domain.services.IJwtTokenService;
 import com.locus_narrative.auth_service.presentation.config.AuthConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -12,7 +11,7 @@ import java.util.Map;
 
 @AllArgsConstructor
 @Service
-public class JwtTokenService implements IJwtTokenService {
+public class JwtTokenService implements com.locus_narrative.auth_service.domain.services.JwtTokenService {
     private AuthConfig _authConfig;
 
     @Override

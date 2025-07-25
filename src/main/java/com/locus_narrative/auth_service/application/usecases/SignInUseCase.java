@@ -4,13 +4,13 @@ import com.locus_narrative.auth_service.domain.entities.UserEntity;
 import com.locus_narrative.auth_service.domain.exceptions.UnauthorizedException;
 import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
 import com.locus_narrative.auth_service.domain.ports.UserPort;
-import com.locus_narrative.auth_service.domain.services.IPasswordService;
+import com.locus_narrative.auth_service.domain.services.PasswordService;
 
 public class SignInUseCase {
     private final UserPort port;
-    private final IPasswordService passwordService;
+    private final PasswordService passwordService;
 
-    public SignInUseCase(UserPort port, IPasswordService passwordService) {
+    public SignInUseCase(UserPort port, PasswordService passwordService) {
         this.port = port;
         this.passwordService = passwordService;
     }

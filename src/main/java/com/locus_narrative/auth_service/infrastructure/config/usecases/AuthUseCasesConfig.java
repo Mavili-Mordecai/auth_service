@@ -5,16 +5,13 @@ import com.locus_narrative.auth_service.application.usecases.GetUserByUuidUseCas
 import com.locus_narrative.auth_service.application.usecases.SignInUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignUpUseCase;
 import com.locus_narrative.auth_service.domain.ports.UserPort;
-import com.locus_narrative.auth_service.domain.services.IPasswordService;
-import org.springframework.beans.factory.annotation.Value;
+import com.locus_narrative.auth_service.domain.services.PasswordPolicyService;
+import com.locus_narrative.auth_service.domain.services.PasswordService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AuthUseCasesConfig {
-    @Value("${password.requirements.min-length}")
-    private Integer passwordMinLength;
-
     @Bean
     public GetUserByUuidUseCase getUserByUuidUseCase(UserPort port) {
         return new GetUserByUuidUseCase(port);
@@ -26,12 +23,12 @@ public class AuthUseCasesConfig {
     }
 
     @Bean
-    public SignInUseCase signInUseCase(UserPort port, IPasswordService passwordService) {
+    public SignInUseCase signInUseCase(UserPort port, PasswordService passwordService) {
         return new SignInUseCase(port, passwordService);
     }
 
     @Bean
-    public SignUpUseCase signUpUseCase(UserPort port, IPasswordService passwordService) {
-        return new SignUpUseCase(port, passwordService, passwordMinLength);
+    public SignUpUseCase signUpUseCase(UserPort port, PasswordService passwordService, PasswordPolicyService passwordPolicyService) {
+        return new SignUpUseCase(port, passwordService, passwordPolicyService);
     }
 }
