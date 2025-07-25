@@ -3,19 +3,21 @@ package com.locus_narrative.auth_service.application.dto.requests;
 import com.locus_narrative.auth_service.application.dto.IResponse;
 import com.locus_narrative.auth_service.application.dto.Request;
 import com.locus_narrative.auth_service.application.dto.Responses;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
 import java.util.Optional;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserRequest extends Request {
     private String login;
     private String password;
+
+    public UserRequest() {
+
+    }
+
+    public UserRequest(String login, String password) {
+        this.login = login;
+        this.password = password;
+    }
 
     @Override
     public Optional<IResponse<String>> validate() {
@@ -26,5 +28,21 @@ public class UserRequest extends Request {
             return Optional.of(Responses.badRequest("The field `password` cannot be blank."));
 
         return super.validate();
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

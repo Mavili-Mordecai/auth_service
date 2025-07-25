@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface IUserJpaRepository extends JpaRepository<UserModel, Long> {
+public interface JpaUserRepository extends JpaRepository<UserModel, Long> {
     @Modifying
     @Query("DELETE FROM UserModel um WHERE um.uuid = :uuid")
     int deleteByUuid(@Param("uuid") UUID uuid);

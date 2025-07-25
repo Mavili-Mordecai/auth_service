@@ -9,9 +9,11 @@ import com.locus_narrative.auth_service.application.usecases.DeleteUserUseCase;
 import com.locus_narrative.auth_service.application.usecases.GetUserByUuidUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignInUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignUpUseCase;
-import com.locus_narrative.auth_service.domain.Either;
-import com.locus_narrative.auth_service.domain.entities.EUserSignUpError;
 import com.locus_narrative.auth_service.domain.entities.UserEntity;
+import com.locus_narrative.auth_service.domain.exceptions.LoginIsBusyException;
+import com.locus_narrative.auth_service.domain.exceptions.UnauthorizedException;
+import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
+import com.locus_narrative.auth_service.domain.exceptions.WeakPasswordException;
 import com.locus_narrative.auth_service.domain.services.IJwtTokenService;
 import com.locus_narrative.auth_service.presentation.schemes.JwtTokensResponseScheme;
 import io.jsonwebtoken.*;
@@ -39,8 +41,8 @@ public class AuthController {
     private final IJwtTokenService _jwtTokenService;
     private final SignInUseCase signInUseCase;
     private final SignUpUseCase signUpUseCase;
-    private final GetUserByUuidUseCase getUserByUuidUseCase;
     private final DeleteUserUseCase deleteUserUseCase;
+    private final GetUserByUuidUseCase getUserByUuidUseCase;
 
     @Value("${password.requirements.min-length}")
     private String passwordMinLength;
@@ -77,12 +79,14 @@ public class AuthController {
     )
     @PostMapping("/sign-in")
     private ResponseEntity<IResponse<?>> signIn(@RequestBody @Validated(UserRequest.class) UserRequest request) {
-        UserEntity user = signInUseCase.invoke(request.getLogin(), request.getPassword());
-
-        if (user.getId() == null)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Responses.unauthorized("The credentials are incorrect."));
-
-        return generateTokens(user.getUuid());
+        try {
+            UserEntity user = signInUseCase.invoke(request.getLogin(), request.getPassword());
+            return generateTokens(user.getUuid());
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Responses.notFound(e.getMessage()));
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Responses.unauthorized(e.getMessage()));
+        }
     }
 
     @Operation(
@@ -117,20 +121,14 @@ public class AuthController {
     )
     @PostMapping("/sign-up")
     private ResponseEntity<IResponse<?>> signUp(@RequestBody @Validated(UserRequest.class) UserRequest request) {
-        Either<EUserSignUpError, UserEntity> userOrError = signUpUseCase.invoke(request.getLogin(), request.getPassword());
-
-        if (userOrError.isLeft())
-            return switch (userOrError.getLeft()) {
-                case LOGIN_BUSY -> ResponseEntity.status(HttpStatus.CONFLICT).body(
-                        Responses.conflict("Login is busy.")
-                );
-
-                case WEAK_PASSWORD -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                        Responses.badRequest("Weak password. Minimum password length is " + passwordMinLength + ".")
-                );
-            };
-
-        return generateTokens(userOrError.getRight().getUuid());
+        try {
+            UserEntity userEntity = signUpUseCase.invoke(request.getLogin(), request.getPassword());
+            return generateTokens(userEntity.getUuid());
+        } catch (WeakPasswordException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Responses.badRequest(e.getMessage()));
+        } catch (LoginIsBusyException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Responses.conflict(e.getMessage()));
+        }
     }
 
     @Operation(
@@ -169,7 +167,13 @@ public class AuthController {
 
         try {
             Object claimsObj = _jwtTokenService.validateRefreshToken(request.getRefresh());
-            if (claimsObj instanceof Claims claims) return generateTokens(UUID.fromString(claims.getSubject()));
+            if (claimsObj instanceof Claims claims) {
+                UUID uuid = UUID.fromString(claims.getSubject());
+
+                getUserByUuidUseCase.invoke(uuid);
+
+                return generateTokens(uuid);
+            }
         } catch (ExpiredJwtException expEx) {
             message = "Token expired.";
         } catch (UnsupportedJwtException unsEx) {
@@ -178,6 +182,8 @@ public class AuthController {
             message = "Malformed jwt.";
         } catch (SignatureException sEx) {
             message = "Invalid signature.";
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Responses.notFound(e.getMessage()));
         } catch (Exception e) {
             message = "Invalid token.";
         }
@@ -233,14 +239,12 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Responses.badRequest("The 'sub' field in the JWT token must contain a valid UUID."));
         }
 
-        UserEntity entity = getUserByUuidUseCase.invoke(uuid);
-
-        if (entity.getId() == null)
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Responses.notFound("User not found."));
-
-        deleteUserUseCase.invoke(uuid);
-
-        return ResponseEntity.ok(Responses.ok());
+        try {
+            deleteUserUseCase.invoke(uuid);
+            return ResponseEntity.ok(Responses.ok());
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Responses.notFound(e.getMessage()));
+        }
     }
 
     private ResponseEntity<IResponse<?>> generateTokens(UUID uuid) {

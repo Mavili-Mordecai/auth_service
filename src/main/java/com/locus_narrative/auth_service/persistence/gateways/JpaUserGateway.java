@@ -1,12 +1,12 @@
-package com.locus_narrative.auth_service.persistence.adapters;
+package com.locus_narrative.auth_service.persistence.gateways;
 
-import com.locus_narrative.auth_service.domain.Either;
-import com.locus_narrative.auth_service.domain.entities.EUserSignUpError;
 import com.locus_narrative.auth_service.domain.entities.UserEntity;
-import com.locus_narrative.auth_service.domain.ports.IUserPort;
+import com.locus_narrative.auth_service.domain.exceptions.LoginIsBusyException;
+import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
+import com.locus_narrative.auth_service.domain.gateways.UserPort;
 import com.locus_narrative.auth_service.persistence.mappers.UserMapper;
 import com.locus_narrative.auth_service.persistence.models.UserModel;
-import com.locus_narrative.auth_service.persistence.repositories.IUserJpaRepository;
+import com.locus_narrative.auth_service.persistence.repositories.JpaUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,45 +16,52 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-public class UserAdapter implements IUserPort {
+public class JpaUserGateway implements UserPort {
     private final UserMapper mapper;
-    private final IUserJpaRepository repository;
+    private final JpaUserRepository repository;
 
     @Override
     @Transactional(readOnly = true)
-    public UserEntity getByLogin(String login) {
+    public UserEntity getByLogin(String login) throws UserNotFoundException {
         Optional<UserModel> model = repository.findByLogin(login);
-        if (model.isEmpty()) return new UserEntity();
+
+        if (model.isEmpty())
+            throw new UserNotFoundException("User not found");
+
         return mapper.toEntity(model.get());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserEntity getByUuid(UUID uuid) {
+    public UserEntity getByUuid(UUID uuid) throws UserNotFoundException {
         Optional<UserModel> model = repository.findByUuid(uuid);
-        if (model.isEmpty()) return new UserEntity();
+
+        if (model.isEmpty())
+            throw new UserNotFoundException("User not found");
+
         return mapper.toEntity(model.get());
     }
 
     @Override
     @Transactional
-    public Either<EUserSignUpError, UserEntity> insert(UserEntity entity) {
+    public UserEntity insert(UserEntity entity) throws LoginIsBusyException {
         Optional<UserModel> model = repository.findByLogin(entity.getLogin());
-        if (model.isPresent()) return Either.left(EUserSignUpError.LOGIN_BUSY);
 
-        return Either.right(mapper.toEntity(repository.save(mapper.toModel(entity))));
+        if (model.isPresent())
+            throw new LoginIsBusyException("Login is busy");
+
+        return mapper.toEntity(repository.save(mapper.toModel(entity)));
     }
 
     @Override
     @Transactional
-    public UserEntity update(UserEntity entity) {
+    public UserEntity update(UserEntity entity) throws UserNotFoundException {
         assert entity.getUuid() != null;
 
         Optional<UserModel> model = repository.findByUuid(entity.getUuid());
-        if (model.isEmpty()) return new UserEntity();
 
-        if (entity.getLogin() != null && !entity.getLogin().isBlank())
-            model.get().setLogin(entity.getLogin());
+        if (model.isEmpty())
+            throw new UserNotFoundException("User not found");
 
         if (entity.getPassword() != null && !entity.getPassword().isBlank())
             model.get().setPassword(entity.getPassword());

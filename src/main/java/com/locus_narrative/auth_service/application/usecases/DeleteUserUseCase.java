@@ -1,17 +1,21 @@
 package com.locus_narrative.auth_service.application.usecases;
 
-import com.locus_narrative.auth_service.domain.ports.IUserPort;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
+import com.locus_narrative.auth_service.domain.gateways.UserPort;
 
 import java.util.UUID;
 
-@Component
-@RequiredArgsConstructor
 public class DeleteUserUseCase {
-    private final IUserPort port;
+    private final UserPort port;
+    private final GetUserByUuidUseCase getUserByUuidUseCase;
 
-    public boolean invoke(UUID uuid) {
+    public DeleteUserUseCase(UserPort port, GetUserByUuidUseCase getUserByUuidUseCase) {
+        this.port = port;
+        this.getUserByUuidUseCase = getUserByUuidUseCase;
+    }
+
+    public boolean invoke(UUID uuid) throws UserNotFoundException {
+        getUserByUuidUseCase.invoke(uuid);
         return port.deleteByUuid(uuid);
     }
 }

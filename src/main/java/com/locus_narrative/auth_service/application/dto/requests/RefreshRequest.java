@@ -3,19 +3,18 @@ package com.locus_narrative.auth_service.application.dto.requests;
 import com.locus_narrative.auth_service.application.dto.IResponse;
 import com.locus_narrative.auth_service.application.dto.Request;
 import com.locus_narrative.auth_service.application.dto.Responses;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.Optional;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class RefreshRequest extends Request {
     private String refresh;
+
+    public RefreshRequest() {
+    }
+
+    public RefreshRequest(String refresh) {
+        this.refresh = refresh;
+    }
 
     @Override
     public Optional<IResponse<String>> validate() {
@@ -23,5 +22,13 @@ public class RefreshRequest extends Request {
             return Optional.of(Responses.badRequest("The field `refresh` cannot be blank."));
 
         return super.validate();
+    }
+
+    public void setRefresh(String refresh) {
+        this.refresh = refresh;
+    }
+
+    public String getRefresh() {
+        return refresh;
     }
 }

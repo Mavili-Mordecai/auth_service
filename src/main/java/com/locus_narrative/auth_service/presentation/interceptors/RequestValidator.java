@@ -14,7 +14,7 @@ public class RequestValidator implements Validator {
     public void validate(Object target, Errors errors) {
         Request request = (Request) target;
         request.validate().ifPresent(error -> {
-            errors.reject("invalid.request", error.getContent());
+            errors.reject("invalid.request", error.content());
         });
     }
 }

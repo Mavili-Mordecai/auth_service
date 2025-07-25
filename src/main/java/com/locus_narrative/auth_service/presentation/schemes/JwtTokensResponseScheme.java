@@ -5,12 +5,12 @@ import com.locus_narrative.auth_service.application.dto.responses.TokenResponse;
 
 public class JwtTokensResponseScheme implements IResponse<TokenResponse> {
     @Override
-    public TokenResponse getContent() {
+    public TokenResponse content() {
         return null;
     }
 
     @Override
-    public int getStatus() {
+    public int status() {
         return 0;
     }
 }

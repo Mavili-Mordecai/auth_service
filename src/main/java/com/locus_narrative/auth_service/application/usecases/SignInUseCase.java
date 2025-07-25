@@ -1,24 +1,26 @@
 package com.locus_narrative.auth_service.application.usecases;
 
 import com.locus_narrative.auth_service.domain.entities.UserEntity;
-import com.locus_narrative.auth_service.domain.ports.IUserPort;
+import com.locus_narrative.auth_service.domain.exceptions.UnauthorizedException;
+import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
+import com.locus_narrative.auth_service.domain.gateways.UserPort;
 import com.locus_narrative.auth_service.domain.services.IPasswordService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
-@RequiredArgsConstructor
 public class SignInUseCase {
-    private final IUserPort port;
+    private final UserPort port;
     private final IPasswordService passwordService;
 
-    public UserEntity invoke(String login, String password) {
+    public SignInUseCase(UserPort port, IPasswordService passwordService) {
+        this.port = port;
+        this.passwordService = passwordService;
+    }
+
+    public UserEntity invoke(String login, String password) throws UserNotFoundException, UnauthorizedException {
         UserEntity entity = port.getByLogin(login);
 
-        if (entity.getId() == null) return entity;
+        if (!passwordService.matches(password, entity.getPassword()))
+            throw new UnauthorizedException("The credentials are incorrect.");
 
-        return passwordService.matches(password, entity.getPassword())
-                ? entity
-                : new UserEntity();
+        return entity;
     }
 }
