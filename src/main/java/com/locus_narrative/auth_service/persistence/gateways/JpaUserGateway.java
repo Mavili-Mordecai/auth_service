@@ -3,7 +3,7 @@ package com.locus_narrative.auth_service.persistence.gateways;
 import com.locus_narrative.auth_service.domain.entities.UserEntity;
 import com.locus_narrative.auth_service.domain.exceptions.LoginIsBusyException;
 import com.locus_narrative.auth_service.domain.exceptions.UserNotFoundException;
-import com.locus_narrative.auth_service.domain.gateways.UserPort;
+import com.locus_narrative.auth_service.domain.ports.UserPort;
 import com.locus_narrative.auth_service.persistence.mappers.UserMapper;
 import com.locus_narrative.auth_service.persistence.models.UserModel;
 import com.locus_narrative.auth_service.persistence.repositories.JpaUserRepository;

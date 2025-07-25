@@ -4,7 +4,7 @@ import com.locus_narrative.auth_service.application.usecases.DeleteUserUseCase;
 import com.locus_narrative.auth_service.application.usecases.GetUserByUuidUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignInUseCase;
 import com.locus_narrative.auth_service.application.usecases.SignUpUseCase;
-import com.locus_narrative.auth_service.domain.gateways.UserPort;
+import com.locus_narrative.auth_service.domain.ports.UserPort;
 import com.locus_narrative.auth_service.domain.services.IPasswordService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

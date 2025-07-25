@@ -1,4 +1,4 @@
-package com.locus_narrative.auth_service.domain.gateways;
+package com.locus_narrative.auth_service.domain.ports;
 
 import com.locus_narrative.auth_service.domain.entities.UserEntity;
 import com.locus_narrative.auth_service.domain.exceptions.LoginIsBusyException;
